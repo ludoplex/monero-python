@@ -39,9 +39,7 @@ class Payment(object):
         self.local_address = kwargs.pop("local_address", self.local_address)
         self.note = kwargs.pop("note", self.note)
         if len(kwargs):
-            raise ValueError(
-                "Excessive arguments for {}: {}".format(type(self), kwargs)
-            )
+            raise ValueError(f"Excessive arguments for {type(self)}: {kwargs}")
 
     def __repr__(self):
         return self._reprstr.format(
@@ -127,10 +125,7 @@ class Transaction(object):
         self.json = kwargs.get("json", self.json)
         self.pubkeys = self.pubkeys or []
         if self.json:
-            if "rct_signatures" in self.json:
-                self.version = 2
-            else:
-                self.version = 1
+            self.version = 2 if "rct_signatures" in self.json else 1
 
     def outputs(self, wallet=None):
         """
@@ -140,8 +135,8 @@ class Transaction(object):
         """
 
         def _scan_pubkeys(
-            svk, psk, stealth_address, amount, encamount, commitment, on_chain_vt
-        ):
+                svk, psk, stealth_address, amount, encamount, commitment, on_chain_vt
+            ):
             for keyidx, tx_key in enumerate(self.pubkeys):
                 # precompute
                 svk_2 = ed25519.scalar_add(svk, svk)
@@ -154,7 +149,7 @@ class Transaction(object):
                         [b"view_tag", shared_secret, varint.encode(idx)]
                     )
                     vt_full = keccak_256(vt_hsdata).digest()
-                    vt = vt_full[0:1]
+                    vt = vt_full[:1]
                     if vt != on_chain_vt:
                         # short-circuit so it doesn't have to do the rest of this for ~99.6% of outputs
                         # the view tag check yields false positives 1/256 times, because it's just 1 byte
@@ -255,8 +250,6 @@ class Transaction(object):
                 stealth_address = binascii.unhexlify(vout["target"]["key"])
                 orig_stealth_address = vout["target"]["key"]
                 on_chain_vt = False
-                pass
-
             encamount = None
             commitment = None
             if self.version == 2 and not self.is_coinbase:
@@ -330,7 +323,7 @@ class Output(object):
         if self.stealth_address:
             res = self.stealth_address
         else:
-            res = "(index={},amount={})".format(self.index, self.amount)
+            res = f"(index={self.index},amount={self.amount})"
         if self.payment:
             return "{:s}, {:.12f} to [{:s}]".format(
                 res, self.payment.amount, str(self.payment.local_address)[:6]
@@ -381,8 +374,7 @@ class PaymentManager(object):
 def _validate_tx_id(txid):
     if not bool(re.compile("^[0-9a-f]{64}$").match(txid)):
         raise ValueError(
-            "Transaction ID must be a 64-character hexadecimal string, not "
-            "'{}'".format(txid)
+            f"Transaction ID must be a 64-character hexadecimal string, not '{txid}'"
         )
     return txid
 
@@ -404,9 +396,7 @@ class _ByHeight(object):
             return 0
         if sh is None:
             return 1
-        if oh is None:
-            return -1
-        return (sh > oh) - (sh < oh)
+        return -1 if oh is None else (sh > oh) - (sh < oh)
 
     def __lt__(self, other):
         return self._cmp(other) > 0
@@ -443,10 +433,8 @@ class PaymentFilter(object):
         _local_address = filterparams.pop("local_address", None)
         _tx_id = filterparams.pop("tx_id", None)
         _payment_id = filterparams.pop("payment_id", None)
-        if len(filterparams) > 0:
-            raise ValueError(
-                "Excessive arguments for payment query: {}".format(filterparams)
-            )
+        if filterparams:
+            raise ValueError(f"Excessive arguments for payment query: {filterparams}")
         if self.unconfirmed and (
             self.min_height is not None or self.max_height is not None
         ):
@@ -513,9 +501,10 @@ class PaymentFilter(object):
             return False
         if self.tx_ids and payment.transaction.hash not in self.tx_ids:
             return False
-        if self.local_addresses and payment.local_address not in self.local_addresses:
-            return False
-        return True
+        return (
+            not self.local_addresses
+            or payment.local_address in self.local_addresses
+        )
 
     def filter(self, payments):
         return sorted(filter(self.check, payments), key=_ByHeight)

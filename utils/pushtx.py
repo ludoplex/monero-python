@@ -65,15 +65,15 @@ d = Daemon(
     JSONRPCDaemon(timeout=args.timeout, proxy_url=args.proxy_url, **args.daemon_rpc_url)
 )
 for name, blob in blobs:
-    logging.debug("Sending {}".format(name))
+    logging.debug(f"Sending {name}")
     tx = Transaction(blob=blob)
     try:
         res = d.send_transaction(tx, relay=args.relay)
     except exceptions.TransactionBroadcastError as e:
-        print("{} not sent, reason: {}".format(name, e.details["reason"]))
+        print(f'{name} not sent, reason: {e.details["reason"]}')
         logging.debug(e.details)
         continue
     if res["not_relayed"]:
-        print("{} not relayed".format(name))
+        print(f"{name} not relayed")
     else:
-        print("{} successfully sent".format(name))
+        print(f"{name} successfully sent")

@@ -93,8 +93,7 @@ for tx in txns:
         )
     )
     if args.outdir:
-        outname = os.path.join(args.outdir, tx.hash + ".tx")
-        outfile = open(outname, "wb")
-        outfile.write(tx.blob)
-        outfile.close()
-        print(u"Transaction saved to {}".format(outname))
+        outname = os.path.join(args.outdir, f"{tx.hash}.tx")
+        with open(outname, "wb") as outfile:
+            outfile.write(tx.blob)
+        print(f"Transaction saved to {outname}")

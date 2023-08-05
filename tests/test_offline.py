@@ -50,17 +50,13 @@ class SubaddrTest(object):
         self.assertEqual(25, len(self.wallet.seed().phrase.split(" ")))
 
     def test_subaddresses(self):
-        major = 0
-        for acc in self._read("{}-subaddrs.json".format(self.net)):
-            minor = 0
-            for subaddr in acc:
+        for major, acc in enumerate(self._read(f"{self.net}-subaddrs.json")):
+            for minor, subaddr in enumerate(acc):
                 self.assertEqual(
                     self.wallet.get_address(major, minor),
                     subaddr,
-                    msg="major={}, minor={}".format(major, minor),
+                    msg=f"major={major}, minor={minor}",
                 )
-                minor += 1
-            major += 1
 
 
 class AddressTestCase(SubaddrTest, JSONTestCase):

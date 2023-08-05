@@ -49,7 +49,7 @@ d = Daemon(JSONRPCDaemon(timeout=args.timeout, **args.daemon_rpc_url))
 
 txs = list(d.transactions(args.tx_id))
 print("Found {:d} transaction(s)".format(len(txs)))
-if len(txs) > 0:
+if txs:
     print("-" * 79)
 for tx in txs:
     print("id: {:s}".format(tx.hash))

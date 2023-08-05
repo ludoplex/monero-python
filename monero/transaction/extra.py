@@ -62,7 +62,7 @@ class ExtraParser(object):
                 valen = len(varint.encode(keycount))
                 extra = extra[valen:]
                 self.offset += valen
-                for i in range(keycount):
+                for _ in range(keycount):
                     extra = self._pop_pubkey(extra)
         return extra
 

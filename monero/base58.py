@@ -122,7 +122,7 @@ def decode_block(data, buf, index):
     for i in range(l_data - 1, -1, -1):
         digit = __alphabet.index(data[i])
         if digit < 0:
-            raise ValueError("Invalid symbol: %s" % data[i])
+            raise ValueError(f"Invalid symbol: {data[i]}")
 
         product = order * digit + res_num
         if product > __UINT64MAX:

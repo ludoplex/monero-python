@@ -175,7 +175,7 @@ class SortingTestCase(unittest.TestCase):
             IncomingPayment(transaction=Transaction(height=None)),
             IncomingPayment(transaction=Transaction(height=1)),
         ]
-        for i in range(1680):  # 1/3 of possible permutations
+        for _ in range(1680):
             sorted_pmts = sorted(pmts, key=_ByHeight)
             self.assertEqual(
                 list(

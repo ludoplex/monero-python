@@ -144,19 +144,17 @@ class JSONRPCDaemon(object):
 
     def mempool(self):
         res = self.raw_request("/get_transaction_pool", {})
-        txs = []
-        for tx in res.get("transactions", []):
-            txs.append(
-                Transaction(
-                    hash=tx["id_hash"],
-                    fee=from_atomic(tx["fee"]),
-                    timestamp=datetime.fromtimestamp(tx["receive_time"]),
-                    blob=binascii.unhexlify(tx["tx_blob"]),
-                    json=json.loads(tx["tx_json"]),
-                    confirmations=0,
-                )
+        return [
+            Transaction(
+                hash=tx["id_hash"],
+                fee=from_atomic(tx["fee"]),
+                timestamp=datetime.fromtimestamp(tx["receive_time"]),
+                blob=binascii.unhexlify(tx["tx_blob"]),
+                json=json.loads(tx["tx_json"]),
+                confirmations=0,
             )
-        return txs
+            for tx in res.get("transactions", [])
+        ]
 
     def headers(self, start_height, end_height=None):
         end_height = end_height or start_height
@@ -249,7 +247,7 @@ class JSONRPCDaemon(object):
             )
         )
         rsp = self.session.post(
-            self.url + "/json_rpc",
+            f"{self.url}/json_rpc",
             headers=hdr,
             data=json.dumps(data),
             auth=self.auth,
@@ -288,7 +286,7 @@ class JSONRPCDaemon(object):
             msg = err["message"]
 
             if code == self._METHOD_NOT_FOUND_CODE:
-                raise MethodNotFound('Daemon method "{}" not found'.format(method))
+                raise MethodNotFound(f'Daemon method "{method}" not found')
 
             _log.error("JSON RPC error:\n{result}".format(result=_ppresult))
             raise RPCError(
@@ -367,7 +365,7 @@ class JSONRPCDaemon(object):
             raise ValueError("wallet_address is not in a recognized address form")
 
         if reserve_size not in range(128):
-            raise ValueError("reserve_size {} is out of bounds".format(reserve_size))
+            raise ValueError(f"reserve_size {reserve_size} is out of bounds")
 
         return self.raw_jsonrpc_request(
             "get_block_template",
@@ -452,7 +450,7 @@ class JSONRPCDaemon(object):
         """
 
         if not self._is_valid_256_hex(blk_hash):
-            raise ValueError('blk_hash "{}" is not a valid hash'.format(blk_hash))
+            raise ValueError(f'blk_hash "{blk_hash}" is not a valid hash')
 
         return self.raw_jsonrpc_request(
             "get_block_header_by_hash", params={"hash": blk_hash}
@@ -570,17 +568,17 @@ class JSONRPCDaemon(object):
         elif height is not None and hash is not None:
             raise ValueError("height and hash can not both be provided")
 
-        if height is not None:
-            if height < 0:
-                raise ValueError("{} is not a valid height".format(height))
-
-            params = {"height": int(height)}
-        else:
+        if height is None:
             if not self._is_valid_256_hex(hash):
-                raise ValueError('blk_hash "{}" is not a valid hash'.format(hash))
+                raise ValueError(f'blk_hash "{hash}" is not a valid hash')
 
             params = {"hash": hash}
 
+        elif height < 0:
+            raise ValueError(f"{height} is not a valid height")
+
+        else:
+            params = {"height": int(height)}
         return self.raw_jsonrpc_request("get_block", params=params)
 
     def get_connections(self):
@@ -704,14 +702,14 @@ class JSONRPCDaemon(object):
 
         if isinstance(ip, (str, int)):  # If single element paramters
             user_bans = [{"ip": ip, "ban": ban, "seconds": seconds}]
-        else:  # If params are iterables, contrust the list of ban entries
-            if not (len(ip) == len(ban) == len(seconds)):
-                raise ValueError('"ip", "ban", and "seconds" are not the same length')
-
+        elif len(ip) == len(ban) == len(seconds):
             user_bans = [
                 {"ip": ip[i], "ban": ban[i], "seconds": seconds[i]}
                 for i in range(len(ip))
             ]
+
+        else:
+            raise ValueError('"ip", "ban", and "seconds" are not the same length')
 
         # Construct the bans parameter to be passed to the RPC command
         bans = []
@@ -1128,9 +1126,7 @@ class JSONRPCDaemon(object):
                 converted_addr = address.address(miner_address)
             except ValueError:
                 raise ValueError(
-                    'miner_address "{}" does not match any recognized address format'.format(
-                        miner_address
-                    )
+                    f'miner_address "{miner_address}" does not match any recognized address format'
                 )
 
             if not isinstance(converted_addr, address.Address):
@@ -1286,12 +1282,12 @@ class JSONRPCDaemon(object):
                 category, level = cat_str.split(":")
 
                 if category not in self._KNOWN_LOG_CATEGORIES:
-                    _log.warn('Unrecognized log category: "{}"'.format(category))
+                    _log.warn(f'Unrecognized log category: "{category}"')
 
                 if level not in self._KNOWN_LOG_LEVELS:
-                    _log.warn('Unrecognized log level: "{}"'.format(level))
+                    _log.warn(f'Unrecognized log level: "{level}"')
             except ValueError:
-                raise ValueError('malformed category string: "{}"'.format(cat_str))
+                raise ValueError(f'malformed category string: "{cat_str}"')
 
         final_category_str = ",".join(categories)
 
@@ -1409,9 +1405,9 @@ class JSONRPCDaemon(object):
         """
 
         if limit_down < -1:
-            raise ValueError("invalid limit_down: {}".format(limit_down))
+            raise ValueError(f"invalid limit_down: {limit_down}")
         elif limit_up < -1:
-            raise ValueError("invalid limit_up: {}".format(limit_up))
+            raise ValueError(f"invalid limit_up: {limit_up}")
 
         return self.raw_request(
             "/set_limit", data={"limit_down": limit_down, "limit_up": limit_up}
@@ -1432,7 +1428,7 @@ class JSONRPCDaemon(object):
         if out_peers_arg < 0:
             out_peers_arg = 2**32 - 1
         elif out_peers_arg > 2**32 - 1:
-            raise ValueError('out_peers_arg "{}" is too large'.format(out_peers_arg))
+            raise ValueError(f'out_peers_arg "{out_peers_arg}" is too large')
 
         return self.raw_request("/out_peers", data={"out_peers": int(out_peers_arg)})
 
@@ -1451,7 +1447,7 @@ class JSONRPCDaemon(object):
         if in_peers_arg < 0:
             in_peers_arg = 2**32 - 1
         elif in_peers_arg > 2**32 - 1:
-            raise ValueError('in_peers_arg "{}" is too large'.format(in_peers_arg))
+            raise ValueError(f'in_peers_arg "{in_peers_arg}" is too large')
 
         return self.raw_request("/in_peers", data={"in_peers": int(in_peers_arg)})
 
@@ -1486,18 +1482,16 @@ class JSONRPCDaemon(object):
                     "index": index,
                 }
             ]
-        else:  # multiple elements
-            if len(amount) != len(index):
-                raise ValueError("length of amount and index do not match")
-
-            outputs = []
-            for a, i in zip(amount, index):
-                outputs.append(
-                    {
-                        "amount": a if isinstance(a, int) else to_atomic(a),
-                        "index": i,
-                    }
-                )
+        elif len(amount) == len(index):
+            outputs = [
+                {
+                    "amount": a if isinstance(a, int) else to_atomic(a),
+                    "index": i,
+                }
+                for a, i in zip(amount, index)
+            ]
+        else:
+            raise ValueError("length of amount and index do not match")
 
         return self.raw_request(
             "/get_outs", data={"outputs": outputs, "get_txid": get_txid}
@@ -1524,7 +1518,7 @@ class JSONRPCDaemon(object):
         }
         """
         if command not in ("check", "download"):
-            raise ValueError('unrecognized command: "{}"'.format(command))
+            raise ValueError(f'unrecognized command: "{command}"')
 
         data = {"command": command}
 
@@ -1601,18 +1595,17 @@ class JSONRPCDaemon(object):
     def _validate_hashlist(self, hashes):
         if not hashes:
             return []
+        if isinstance(hashes, str):
+            hashes = [hashes]
         else:
-            if isinstance(hashes, str):
-                hashes = [hashes]
-            else:
-                coerce_compatible_str = (
-                    lambda s: s.decode() if isinstance(s, bytes) else s
-                )
-                hashes = list(map(coerce_compatible_str, hashes))
+            coerce_compatible_str = (
+                lambda s: s.decode() if isinstance(s, bytes) else s
+            )
+            hashes = list(map(coerce_compatible_str, hashes))
 
-            not_valid = lambda h: not self._is_valid_256_hex(h)
+        not_valid = lambda h: not self._is_valid_256_hex(h)
 
-            if any(map(not_valid, hashes)):
-                raise ValueError("hashes contains an invalid hash")
+        if any(map(not_valid, hashes)):
+            raise ValueError("hashes contains an invalid hash")
 
-            return hashes
+        return hashes
