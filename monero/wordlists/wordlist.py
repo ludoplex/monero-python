@@ -79,12 +79,7 @@ class Wordlist(metaclass=WordlistType):
         phrase_split = phrase.split(" ")
         if len(phrase_split) < 12:
             raise ValueError("Invalid mnemonic phrase")
-        if len(phrase_split) > 13:
-            # Standard format
-            phrase = phrase_split[:24]
-        else:
-            # MyMonero format
-            phrase = phrase_split[:12]
+        phrase = phrase_split[:24] if len(phrase_split) > 13 else phrase_split[:12]
         wstr = "".join(word[: cls.unique_prefix_length] for word in phrase)
         wstr = bytearray(wstr.encode("utf-8"))
         z = ((crc32(wstr) & 0xFFFFFFFF) ^ 0xFFFFFFFF) >> 0

@@ -81,7 +81,7 @@ class Seed(object):
                 self._decode_seed()
             elif len(seed_split) == 1:
                 # single string, probably hex, but confirm
-                if not len(phrase_or_hex) % 8 == 0:
+                if len(phrase_or_hex) % 8 != 0:
                     raise ValueError(
                         "Not valid hexadecimal: {hex}".format(hex=phrase_or_hex)
                     )
@@ -167,7 +167,7 @@ class Seed(object):
             netbyte, self.public_spend_key(), self.public_view_key()
         )
         checksum = keccak_256(unhexlify(data)).hexdigest()
-        return address(base58.encode(data + checksum[0:8]))
+        return address(base58.encode(data + checksum[:8]))
 
 
 def generate_random_hex(n_bytes=32):

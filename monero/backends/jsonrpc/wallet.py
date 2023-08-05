@@ -75,16 +75,14 @@ class JSONRPCWallet(object):
     def accounts(self):
         accounts = []
         _accounts = self.raw_request("get_accounts")
-        idx = 0
         self._master_address = Address(
             _accounts["subaddress_accounts"][0]["base_address"]
         )
-        for _acc in _accounts["subaddress_accounts"]:
+        for idx, _acc in enumerate(_accounts["subaddress_accounts"]):
             assert idx == _acc["account_index"]
             accounts.append(
                 Account(self, _acc["account_index"], label=_acc.get("label"))
             )
-            idx += 1
         return accounts
 
     def new_account(self, label=None):
@@ -152,25 +150,14 @@ class JSONRPCWallet(object):
             params["in"] = pmtfilter.confirmed
             params["out"] = False
             params["pool"] = True
+        elif pmtfilter.payment_ids:
+            method = "get_bulk_payments"
+            params["payment_ids"] = list(map(str, pmtfilter.payment_ids))
         else:
-            if pmtfilter.payment_ids:
-                method = "get_bulk_payments"
-                params["payment_ids"] = list(map(str, pmtfilter.payment_ids))
-            else:
-                params["in"] = pmtfilter.confirmed
-                params["out"] = False
-                params["pool"] = False
-        if method == "get_transfers":
-            if pmtfilter.min_height:
-                # NOTE: the API uses (min, max] range which is confusing
-                params["min_height"] = pmtfilter.min_height - 1
-                params["filter_by_height"] = True
-            if pmtfilter.max_height:
-                params["max_height"] = pmtfilter.max_height
-                params["filter_by_height"] = True
-            _pmts = self.raw_request(method, params)
-            pmts = _pmts.get("in", [])
-        elif method == "get_transfer_by_txid":
+            params["in"] = pmtfilter.confirmed
+            params["out"] = False
+            params["pool"] = False
+        if method == "get_transfer_by_txid":
             pmts = []
             for txid in pmtfilter.tx_ids:
                 params["txid"] = txid
@@ -185,6 +172,16 @@ class JSONRPCWallet(object):
                         del pmt["destinations"]
                     except KeyError:
                         pass
+        elif method == "get_transfers":
+            if pmtfilter.min_height:
+                # NOTE: the API uses (min, max] range which is confusing
+                params["min_height"] = pmtfilter.min_height - 1
+                params["filter_by_height"] = True
+            if pmtfilter.max_height:
+                params["max_height"] = pmtfilter.max_height
+                params["filter_by_height"] = True
+            _pmts = self.raw_request(method, params)
+            pmts = _pmts.get("in", [])
         else:
             # NOTE: the API uses (min, max] range which is confusing
             params["min_block_height"] = (pmtfilter.min_height or 1) - 1
@@ -352,10 +349,11 @@ class JSONRPCWallet(object):
         if not subaddr_indices:
             # retrieve indices of all subaddresses with positive unlocked balance
             bals = self.raw_request("get_balance", {"account_index": account})
-            subaddr_indices = []
-            for subaddr in bals["per_subaddress"]:
-                if subaddr.get("unlocked_balance", 0):
-                    subaddr_indices.append(subaddr["address_index"])
+            subaddr_indices = [
+                subaddr["address_index"]
+                for subaddr in bals["per_subaddress"]
+                if subaddr.get("unlocked_balance", 0)
+            ]
         data = {
             "account_index": account,
             "address": str(address(destination)),

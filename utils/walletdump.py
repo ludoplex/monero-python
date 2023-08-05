@@ -70,12 +70,12 @@ def pmt2str(pmt):
         )
     ]
     try:
-        for dest in pmt.destinations:
-            res.append(
-                "    {amount:17.12f} to {address}".format(
-                    address=dest[0], amount=dest[1]
-                )
+        res.extend(
+            "    {amount:17.12f} to {address}".format(
+                address=dest[0], amount=dest[1]
             )
+            for dest in pmt.destinations
+        )
     except AttributeError:
         pass
     return "\n".join(res)
@@ -127,14 +127,12 @@ if len(w.accounts) > 1:
         addresses = acc.addresses()
         print("{num:2d} address(es):".format(num=len(addresses)))
         print("\n".join(map(a2str, addresses)))
-        ins = acc.incoming(unconfirmed=True)
-        if ins:
+        if ins := acc.incoming(unconfirmed=True):
             print("\nIncoming transactions:")
             print(_TXHDR.format(dir="received by"))
             for tx in ins:
                 print(pmt2str(tx))
-        outs = acc.outgoing(unconfirmed=True)
-        if outs:
+        if outs := acc.outgoing(unconfirmed=True):
             print("\nOutgoing transactions:")
             print(_TXHDR.format(dir="sent from"))
             for tx in outs:
@@ -143,14 +141,12 @@ else:
     addresses = w.accounts[0].addresses()
     print("{num:2d} address(es):".format(num=len(addresses)))
     print("\n".join(map(a2str, addresses)))
-    ins = w.incoming(unconfirmed=True)
-    if ins:
+    if ins := w.incoming(unconfirmed=True):
         print("\nIncoming transactions:")
         print(_TXHDR.format(dir="received by"))
         for tx in ins:
             print(pmt2str(tx))
-    outs = w.outgoing(unconfirmed=True)
-    if outs:
+    if outs := w.outgoing(unconfirmed=True):
         print("\nOutgoing transactions:")
         print(_TXHDR.format(dir="sent from"))
         for tx in outs:

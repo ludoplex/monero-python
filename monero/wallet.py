@@ -76,9 +76,7 @@ class Wallet(object):
         :rtype: str or None
         """
         key = self._backend.spend_key()
-        if key == numbers.EMPTY_KEY:
-            return None
-        return key
+        return None if key == numbers.EMPTY_KEY else key
 
     def view_key(self):
         """
@@ -116,10 +114,7 @@ class Wallet(object):
 
         :rtype: int
         """
-        if isinstance(txn_or_pmt, Payment):
-            txn = txn_or_pmt.transaction
-        else:
-            txn = txn_or_pmt
+        txn = txn_or_pmt.transaction if isinstance(txn_or_pmt, Payment) else txn_or_pmt
         try:
             return max(0, self.height() - txn.height)
         except TypeError:
@@ -212,9 +207,9 @@ class Wallet(object):
         """
         # ensure indexes are within uint32
         if major < 0 or major >= 2**32:
-            raise ValueError("major index {} is outside uint32 range".format(major))
+            raise ValueError(f"major index {major} is outside uint32 range")
         if minor < 0 or minor >= 2**32:
-            raise ValueError("minor index {} is outside uint32 range".format(minor))
+            raise ValueError(f"minor index {minor} is outside uint32 range")
         master_address = self.address()
         if major == minor == 0:
             return master_address

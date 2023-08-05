@@ -12,9 +12,11 @@ from monero.transaction import IncomingPayment, Transaction
 
 class FiltersTestCase(unittest.TestCase):
     def setUp(self):
+
+
+
         class MockBackend(object):
             def __init__(self):
-                self.transfers = []
                 tx = Transaction(
                     timestamp=datetime(2018, 1, 29, 15, 0, 25),
                     height=1087606,
@@ -31,7 +33,7 @@ class FiltersTestCase(unittest.TestCase):
                     ),
                     transaction=tx,
                 )
-                self.transfers.append(pm)
+                self.transfers = [pm]
                 tx = Transaction(
                     timestamp=datetime(2018, 1, 29, 14, 57, 47),
                     height=1087601,
@@ -146,6 +148,7 @@ class FiltersTestCase(unittest.TestCase):
 
             def transfers_in(self, account, pmtfilter):
                 return list(pmtfilter.filter(self.transfers))
+
 
         self.wallet = Wallet(MockBackend())
 
